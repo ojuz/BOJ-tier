@@ -1,2 +1,9 @@
 .idea/
 *.pyc
+docker-compose.dev.yml
+.dev.env
+nginx.dev.conf
+web/app_dev.py
+devbuild.sh
+devup.sh
+dev.ini

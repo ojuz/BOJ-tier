@@ -1,0 +1,9 @@
+Flask==0.12.2
+flask-rq2[cli]
+requests>=2.18.4
+uWSGI
+sentry
+flask-redis
+raven[flask]
+ujson
+humanize
