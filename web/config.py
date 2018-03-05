@@ -9,6 +9,13 @@ class base_config(object):
     REDIS_PORT = int( os.environ.get('REDIS_PORT', 6379) )
     REDIS_URL = "redis://{}:{}/0".format(REDIS_HOST, REDIS_PORT)
     RQ_REDIS_URL = REDIS_URL
+    RQ_DASHBOARD_USERNAME = os.environ.get('RQ_DASHBOARD_USERNAME')
+    RQ_DASHBOARD_PASSWORD = os.environ.get('RQ_DASHBOARD_PASSWORD')
+
+    RQ_POLL_INTERVAL = 2500
+    DEBUG = False
+    WEB_BACKGROUND = "black"
+    DELETE_JOBS = False
 
 
 class dev_config(base_config):

@@ -22,8 +22,9 @@ from .utils import get_problem_diffs, set_problem_diffs
 import ujson
 import time
 import requests
-from datetime import timedelta
+from datetime import timedelta, datetime
 import humanize
+import os
 
 
 
@@ -60,10 +61,17 @@ def user(handle):
         return render_template_with_user("error.html")
 
     logged_in_user_handle = session.get("id", None)
-    logged_in_user_data = get_user_data(logged_in_user_handle)
+    logged_in_user_data = get_user_data(logged_in_user_handle) if logged_in_user_handle is not None else None
+    if logged_in_user_data is None:
+        logged_in_user_data = {'solved_problem_ids': [], 'num_correct': 0, 'handle': '', 'time': 0, 'rank': 987654321}
 
-    t = time.time()
-    cd = [(int(key.decode('utf-8')), val) for key, val in redis_store.zrevrange("bojtier:recent:{}".format(handle), 0, 20, withscores=True)]
+    last_time = redis_store.get("bojtier:recent-time:{}".format(handle.lower())) or "0"
+    if time.time() - float(last_time) > 300:
+        observe_status.queue(handle, queue='high')
+        redis_store.set("bojtier:recent-time:{}".format(handle.lower()), time.time())
+
+    t = (datetime.utcnow() + timedelta(hours=9)).timestamp()
+    cd = [(int(key.decode('utf-8')), val) for key, val in redis_store.zrevrange("bojtier:recent:{}".format(handle.lower()), 0, 20, withscores=True)]
     r = list((_[0], humanize.naturaltime(timedelta(seconds=t - _[1])),
               '' if logged_in_user_handle is None or _[0] not in logged_in_user_data['solved_problem_ids'] else ' class="correct"',
               ConvDiff(get_problem_diffs(_[0]))) for _ in cd)
@@ -134,7 +142,7 @@ def ranking(p):
         p = int(p) * 100
     except:
         p = 0
-    t = redis_store.zrevrange("bojtier:user-ranking", p, p + 100, withscores=True)
+    t = redis_store.zrevrange("bojtier:user-ranking", p, p + 99, withscores=True)
     return render_template_with_user("ranking.html", t=[(p+i+1, v[0].decode('utf-8'), ConvTier(v[1])) for i, v in enumerate(t)])
 
 
@@ -280,9 +288,6 @@ def observe_ranking():
     redis_store.set('bojtier:current_ranking_page', new_page)
 
 
-observe_ranking.schedule(timedelta(minutes=5))
-
-
 @rq.job(timeout=60*60*3)
 def calculate_tier():
     temp_rankings = []
@@ -313,10 +318,6 @@ def calculate_tier():
         redis_store.zadd("bojtier:problem-diffs", 1 / diff ** .5, str(problem_id))
 
 
-calculate_tier.schedule(timedelta(minutes=10))
-
-
-
 @rq.job(timeout=60*5)
 def observe_problems():
     page = redis_store.get('bojtier:current_problem_page')
@@ -335,13 +336,12 @@ def observe_problems():
     redis_store.set('bojtier:current_problem_page', new_page)
 
 
-observe_problems.schedule(timedelta(minutes=10))
 
 
 @rq.job(timeout=60*10)
-def observe_status():
+def observe_status(handle=None):
     T = time.time()
-    r = requests.get('https://www.acmicpc.net/status/?result_id=4', timeout = 5)
+    r = requests.get('https://www.acmicpc.net/status/?result_id=4&user_id={}'.format(handle or ''), timeout = 5)
     if r.status_code == 200:
         r = r.content.split(b'<tr')
         for i in range(21, 1, -1):
@@ -353,8 +353,19 @@ def observe_status():
             u = t[:t.index(b'"')].decode('utf-8')
             t = t[t.index(b'/problem/') + 9:]
             p = int(t[:t.index(b'"')])
-            update_user(u)
-            redis_store.zadd("bojtier:recent:{}".format(u.lower()), T, p)
+            t = t[t.index(b'data-placement="top"  title="') + len(b'data-placement="top"  title="'):]
+            d = [int("".join(chr(c) for c in chunk if chr(c).isdigit())) for chunk in t[:t.index(b'"')].split(b" ")]
+            if handle is None:
+                update_user(u)
+            redis_store.zadd("bojtier:recent:{}".format(u.lower()),
+                             datetime(year=d[0],month=d[1],day=d[2],hour=d[3],minute=d[4],second=d[5]).timestamp(),
+                             p)
+    if handle is not None:
+        update_user(handle)
 
 
-observe_status.schedule(timedelta(minutes=1))
+if "IS_SCHEDULER" in os.environ:
+    observe_ranking.schedule(timedelta(minutes=5))
+    observe_problems.schedule(timedelta(minutes=10))
+    observe_status.schedule(timedelta(minutes=1), queue='high')
+    calculate_tier.schedule(timedelta(minutes=10))

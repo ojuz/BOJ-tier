@@ -7,3 +7,4 @@ flask-redis
 raven[flask]
 ujson
 humanize
+rq_dashboard
