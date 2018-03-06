@@ -266,7 +266,7 @@ def update_user(handle):
 
         redis_store.set("bojtier:user:{}".format(handle.lower()), ujson.dumps(data))
     elif req.status_code == 404:
-        redis_store.delete("bojtier:user:{}".format(handle))
+        redis_store.delete("bojtier:user:{}".format(handle.lower()))
 
 
 @rq.job(timeout=60*10)
@@ -336,8 +336,6 @@ def observe_problems():
     redis_store.set('bojtier:current_problem_page', new_page)
 
 
-
-
 @rq.job(timeout=60*10)
 def observe_status(handle=None):
     T = time.time()
@@ -359,7 +357,7 @@ def observe_status(handle=None):
                 update_user(u)
             redis_store.zadd("bojtier:recent:{}".format(u.lower()),
                              datetime(year=d[0],month=d[1],day=d[2],hour=d[3],minute=d[4],second=d[5]).timestamp(),
-                             p)
+                             str(p))
     if handle is not None:
         update_user(handle)
 
