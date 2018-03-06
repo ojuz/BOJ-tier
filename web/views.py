@@ -58,6 +58,13 @@ def user(handle):
 
     data = get_user_data(handle)
     if data is None:
+        last_time = redis_store.get("bojtier:recent-time:{}".format(handle.lower())) or "0"
+        if time.time() - float(last_time) > 300:
+            observe_status.queue(handle, queue='high')
+            redis_store.set("bojtier:recent-time:{}".format(handle.lower()), time.time())
+        return render_template_with_user("error.html")
+
+    if get_user_tier(handle) is None:
         return render_template_with_user("error.html")
 
     logged_in_user_handle = session.get("id", None)
@@ -343,6 +350,8 @@ def observe_status(handle=None):
     if r.status_code == 200:
         r = r.content.split(b'<tr')
         for i in range(21, 1, -1):
+            if i >= len(r):
+                continue
             t = r[i]
             i = t.find(b'/user/')
             if i == -1:
@@ -360,10 +369,13 @@ def observe_status(handle=None):
                              str(p))
     if handle is not None:
         update_user(handle)
+        num_recent = redis_store.zcard("bojtier:recent:{}".format(handle.lower()))
+        if num_recent > 20:
+            redis_store.zremrangebyrank("bojtier:recent:{}".format(handle.lower()), 0, num_recent - 21)
 
 
-if "IS_SCHEDULER" in os.environ:
+if os.environ.get('HEAD_WORKER', False):
     observe_ranking.schedule(timedelta(minutes=5))
     observe_problems.schedule(timedelta(minutes=10))
     observe_status.schedule(timedelta(minutes=1), queue='high')
-    calculate_tier.schedule(timedelta(minutes=10))
+    calculate_tier.schedule(timedelta(minutes=2))
