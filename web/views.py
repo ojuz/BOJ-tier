@@ -37,7 +37,10 @@ def render_template_with_user(f, **a):
 
 @front.route('/')
 def index():
-    return render_template_with_user('index.html')
+    return render_template_with_user('index.html',
+                                     time_status=time.time() - float(redis_store.get("bojtier:observe_status_time").decode('utf-8')),
+                                     time_ranking_delta=time.time() - float(redis_store.get("bojtier:observe_ranking_time").decode('utf-8')),
+                                     time_tier_calculate=time.time() - float(redis_store.get("bojtier:calculate_tier_time").decode('utf-8')))
 
 
 @front.route('/tool/')
@@ -293,6 +296,7 @@ def observe_ranking():
         new_page = page
 
     redis_store.set('bojtier:current_ranking_page', new_page)
+    redis_store.set("bojtier:observe_ranking_time", time.time())
 
 
 @rq.job(timeout=60*60*3)
@@ -323,6 +327,7 @@ def calculate_tier():
         redis_store.zadd("bojtier:user-ranking", r, handle)
     for problem_id, diff in temp_diffs.items():
         redis_store.zadd("bojtier:problem-diffs", 1 / diff ** .5, str(problem_id))
+    redis_store.set("bojtier:calculate_tier_time", time.time())
 
 
 @rq.job(timeout=60*5)
@@ -341,6 +346,7 @@ def observe_problems():
     else:
         new_page = page
     redis_store.set('bojtier:current_problem_page', new_page)
+    redis_store.set("bojtier:observe_problems_time", time.time())
 
 
 @rq.job(timeout=60*10)
@@ -377,7 +383,7 @@ def observe_status(handle=None):
 
 
 if os.environ.get('HEAD_WORKER', False):
-    observe_ranking.cron('0/5 * * * *', 'observe-ranking')
+    observe_ranking.cron('0/3 * * * *', 'observe-ranking')
     observe_problems.cron('0/10 * * * *', 'observe-problems')
     observe_status.cron('0/1 * * * *', 'observe-status', queue='high')
     calculate_tier.cron('0/2 * * * *', 'calculate-tier')
