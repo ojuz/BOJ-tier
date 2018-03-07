@@ -346,6 +346,8 @@ def observe_problems():
 @rq.job(timeout=60*10)
 def observe_status(handle=None):
     T = time.time()
+    if handle is None:
+        redis_store.set("bojtier:observe_status_time", T)
     r = requests.get('https://www.acmicpc.net/status/?result_id=4&user_id={}'.format(handle or ''), timeout = 5)
     if r.status_code == 200:
         r = r.content.split(b'<tr')
@@ -375,7 +377,7 @@ def observe_status(handle=None):
 
 
 if os.environ.get('HEAD_WORKER', False):
-    observe_ranking.schedule(timedelta(minutes=5))
-    observe_problems.schedule(timedelta(minutes=10))
-    observe_status.schedule(timedelta(minutes=1), queue='high')
-    calculate_tier.schedule(timedelta(minutes=2))
+    observe_ranking.cron('0/5 * * * *', 'observe-ranking')
+    observe_problems.cron('0/10 * * * *', 'observe-problems')
+    observe_status.cron('0/1 * * * *', 'observe-status', queue='high')
+    calculate_tier.cron('0/2 * * * *', 'calculate-tier')
