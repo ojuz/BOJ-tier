@@ -19,7 +19,7 @@
 <p>curl https://koosa.ga/api/prob -X POST -d "[1000,9999,11929]" -H "Content-Type: Application/json"</p>
 <h2 class="content-subhead">user</h2>
 <p>유저의 아이디, 티어와 랭킹을 반환하는 API입니다. data는 문자열만으로 구성된 리스트입니다. 각 문자열은 값을 원하는 유저의 아이디입니다. (대소문자 구별 안 함)</p>
-<p>result는 data에 주어진 순서대로 각 유저의 아이디, 티어와 랭킹을 나타내는 사전 객체를 담은 리스트입니다. 각 사전 객체는 세 개의 key를 가지며, 각각 "userid", "tier"와 "ranking"입니다. "userid"는 해당 유저의 아이디를 값으로 가집니다. "tier"는 해당 유저의 티어를 값으로 가집니다. "ranking"은 해당 유저의 0-based 랭킹을 값으로 가집니다.</p>
+<p>result는 data에 주어진 순서대로 각 유저의 아이디, 티어와 랭킹을 나타내는 사전 객체를 담은 리스트입니다. 각 사전 객체는 세 개의 key를 가지며, 각각 "userid", "tier"와 "ranking"입니다. "userid"는 해당 유저의 아이디를 값으로 가집니다. "tier"는 해당 유저의 티어를 값으로 가집니다. "ranking"은 해당 유저의 1-based 랭킹을 값으로 가집니다.</p>
 <p>만약 존재하지 않는 유저라면 "userid", "tier"와 "ranking" 모두 null을 값으로 가집니다.</p>
 <p><a href="/api/user?q=[&quot;cuBeLOVeR&quot;,&quot;koosaga&quot;,&quot;&quot;]">/api/user?q=["cuBeLOVeR","koosaga",""]</a></p>
 <p>curl https://koosa.ga/api/user -X POST -d "q=[\"cuBeLOVeR\",\"koosaga\",\"\"]"</p>
