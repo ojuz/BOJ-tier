@@ -61,19 +61,5 @@ def is_problem_rated(problem_id):
     return is_rated
 
 
-_problem_diffs = {}
-
-
 def get_problem_diffs(problem_id):
-    if problem_id in _problem_diffs:
-        return _problem_diffs[problem_id]
-    data = redis_store.zscore("bojtier:problem-diffs", str(problem_id))
-    if data is not None:
-        _problem_diffs[problem_id] = data
-        return _problem_diffs[problem_id]
-    return 100.26
-
-
-def set_problem_diffs(problem_id, value):
-    _problem_diffs[problem_id] = value
-    redis_store.set("bojtier:problem-diffs:{:d}".format(problem_id), ujson.loads(value))
+    return redis_store.zscore("bojtier:problem-diffs", str(problem_id)) or 100.26

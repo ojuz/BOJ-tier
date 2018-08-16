@@ -18,7 +18,7 @@
 from flask import Blueprint, request, render_template, session, redirect, url_for
 from .extensions import redis_store, rq
 from .utils import get_user_data, get_user_tier, ConvTier, ConvDiff, is_problem_rated
-from .utils import get_problem_diffs, set_problem_diffs
+from .utils import get_problem_diffs
 import ujson
 import time
 import requests
@@ -52,7 +52,7 @@ def tools():
 
 
 def GetRanking(handle):
-    return redis_store.zcount("bojtier:user-ranking", get_user_tier(handle), 1e9)
+    return redis_store.zcount("bojtier:user-ranking", get_user_tier(handle), int(1e9))
 
 
 @front.route("/user/<handle>/")
@@ -354,7 +354,7 @@ def observe_status(handle=None):
     T = time.time()
     if handle is None:
         redis_store.set("bojtier:observe_status_time", T)
-    r = requests.get('https://www.acmicpc.net/status/?result_id=4&user_id={}'.format(handle or ''), timeout = 5)
+    r = requests.get('https://www.acmicpc.net/status?result_id=4&user_id={}'.format(handle or ''), timeout = 5)
     if r.status_code == 200:
         r = r.content.split(b'<tr')
         for i in range(21, 1, -1):
