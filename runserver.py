@@ -356,7 +356,7 @@ def observe_status():
 	while alive:
 		try:
 			T = time.time()
-			r = s.get('https://www.acmicpc.net/status/?result_id=4', timeout = 5)
+			r = s.get('https://www.acmicpc.net/status?result_id=4', timeout = 5)
 			if r.status_code == 200:
 				r = r.content.split(b'<tr')
 				for i in range(21, 1, -1):
