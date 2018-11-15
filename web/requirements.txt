@@ -1,8 +1,7 @@
-Flask==0.12.2
+Flask
 flask-rq2[cli]
-requests>=2.18.4
+requests
 uWSGI
-sentry
 flask-redis
 raven[flask]
 ujson
