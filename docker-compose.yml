@@ -1,6 +1,81 @@
 version: '3'
+
 services:
   web:
-    build: .
+    restart: always
+    build: ./web
+    image: bojtier-web
     ports:
-    - "5000:5000"
+      - "3032:5000"
+    expose:
+      - "3032"
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+    volumes:
+      - ./temp:/temp
+    links:
+      - redis
+    env_file:
+      - .env
+    command: uwsgi --catch-exceptions --ini production.ini
+  nginx:
+    restart: always
+    build: ./nginx
+    ports:
+      - "80:80"
+    links:
+      - redis
+    volumes:
+      - ./temp:/temp
+      - ./web/static:/web/static
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+  web-worker-head:
+    restart: always
+    image: bojtier-web
+    working_dir: /
+    environment:
+      - FLASK_APP=web/app.py
+      - HEAD_WORKER=1
+    env_file:
+      - .env
+    command: flask rq worker -v
+    depends_on:
+      - redis
+  web-worker:
+    restart: always
+    image: bojtier-web
+    working_dir: /
+    environment:
+      - FLASK_APP=web/app.py
+    env_file:
+      - .env
+    command: flask rq worker -v
+    depends_on:
+      - redis
+  web-high-worker:
+    restart: always
+    image: bojtier-web
+    working_dir: /
+    environment:
+      - FLASK_APP=web/app.py
+    env_file:
+      - .env
+    command: flask rq worker high -v
+    depends_on:
+      - redis
+
+  web-scheduler:
+    restart: always
+    image: bojtier-web
+    working_dir: /
+    environment:
+      - FLASK_APP=web/app.py
+    env_file:
+      - .env
+    command: rqscheduler --host redis --interval 10 -v
+    depends_on:
+      - redis
