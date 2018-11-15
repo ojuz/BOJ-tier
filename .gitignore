@@ -2,6 +2,7 @@
 *.pyc
 docker-compose.dev.yml
 .dev.env
+.env
 nginx.dev.conf
 web/app_dev.py
 devbuild.sh
