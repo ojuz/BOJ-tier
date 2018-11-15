@@ -339,7 +339,7 @@ def observe_problems():
         new_page = 1
     elif req.status_code == 200:
         new_page = page + 1
-        for chunk in req.content.split(b'<td class="click-this"><a href = "/problem/')[1:]:
+        for chunk in req.content.split(b'<td><a href = "/problem/')[1:]:
             problem_id = int(chunk[:chunk.index(b'"')])
             is_rated = (b"label-warning" not in chunk[:400])
             redis_store.set("bojtier:problem-rated:{:d}".format(problem_id), ujson.dumps(is_rated))
@@ -368,7 +368,7 @@ def observe_status(handle=None):
             u = t[:t.index(b'"')].decode('utf-8')
             t = t[t.index(b'/problem/') + 9:]
             p = int(t[:t.index(b'"')])
-            t = t[t.index(b'data-placement="top"  title="') + len(b'data-placement="top"  title="'):]
+            t = t[t.index(b'data-placement="top" title="') + len(b'data-placement="top" title="'):]
             d = [int("".join(chr(c) for c in chunk if chr(c).isdigit())) for chunk in t[:t.index(b'"')].split(b" ")]
             if handle is None:
                 update_user(u)
