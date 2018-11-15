@@ -18,6 +18,7 @@ import requests
 from .extensions import redis_store
 import math
 import ujson
+import time
 
 
 def ConvTier(x, f = False):
@@ -39,25 +40,19 @@ def get_user_tier(handle):
     return redis_store.zscore("bojtier:user-ranking", handle.lower())
 
 
-_is_problem_rated = {}
-
-
 def is_problem_rated(problem_id):
-    if problem_id in _is_problem_rated:
-        return _is_problem_rated[problem_id]
-
     data = redis_store.get("bojtier:problem-rated:{:d}".format(problem_id))
     if data is not None:
-        _is_problem_rated[problem_id] = ujson.loads(data)
-        return _is_problem_rated[problem_id]
+        is_rated, stored_time = ujson.loads(data)
+        if time.time() - stored_time <= 24 * 60 * 14: # 14일에 한 번씩 물어봄
+            return is_rated
 
     req = requests.get("https://acmicpc.net/problem/{:d}".format(problem_id), timeout=10)
     is_rated = False
     if req.status_code == 200:
         is_rated = (req.content.find(b'label-warning') == -1)
-    redis_store.set("bojtier:problem-rated:{:d}".format(problem_id), ujson.dumps(is_rated))
+    redis_store.set("bojtier:problem-rated:{:d}".format(problem_id), ujson.dumps([is_rated, time.time()]))
 
-    _is_problem_rated[problem_id] = is_rated
     return is_rated
 
 
