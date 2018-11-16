@@ -2,7 +2,8 @@ Flask
 flask-rq2[cli]
 requests
 uWSGI
-flask-redis
+redis==2.10.6
+flask-redis==0.3.0
 raven[flask]
 ujson
 humanize
