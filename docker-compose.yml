@@ -67,7 +67,17 @@ services:
     command: flask rq worker high -v
     depends_on:
       - redis
-
+  web-calctier-worker:
+    restart: always
+    image: bojtier-web
+    working_dir: /
+    environment:
+      - FLASK_APP=web/app.py
+    env_file:
+      - .env
+    command: flask rq worker calctier -v
+    depends_on:
+      - redis
   web-scheduler:
     restart: always
     image: bojtier-web

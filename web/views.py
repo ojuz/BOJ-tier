@@ -342,7 +342,7 @@ def observe_problems():
         for chunk in req.content.split(b'<td><a href = "/problem/')[1:]:
             problem_id = int(chunk[:chunk.index(b'"')])
             is_rated = (b"label-warning" not in chunk[:400])
-            redis_store.set("bojtier:problem-rated:{:d}".format(problem_id), ujson.dumps(is_rated))
+            redis_store.set("bojtier:problem-rated:{:d}".format(problem_id), ujson.dumps([is_rated, time.time()]))
     else:
         new_page = page
     redis_store.set('bojtier:current_problem_page', new_page)
@@ -385,5 +385,5 @@ def observe_status(handle=None):
 if os.environ.get('HEAD_WORKER', False):
     observe_ranking.cron('0/3 * * * *', 'observe-ranking')
     observe_problems.cron('0/10 * * * *', 'observe-problems')
-    observe_status.cron('0/1 * * * *', 'observe-status', queue='high')
-    calculate_tier.cron('0/2 * * * *', 'calculate-tier')
+    observe_status.cron('0/2 * * * *', 'observe-status', queue='high')
+    calculate_tier.cron('0/5 * * * *', 'calculate-tier', queue='calctier')
